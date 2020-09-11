@@ -1,13 +1,16 @@
 import BaseSchema from '@ioc:Adonis/Lucid/Schema'
 
-export default class Phonenumbers extends BaseSchema {
-  protected tableName = 'phonenumbers'
+export default class Socialusers extends BaseSchema {
+  protected tableName = 'socialusers'
 
   public async up () {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
-      table.integer('userId').references('id').inTable('users').onDelete('CASCADE')
-      table.string('phonenumber')
+      table.string('social_type')
+      table.integer('social_id')
+      table.string('name')
+      table.string('username')
+      table.string('email')
       table.timestamps(true)
     })
   }

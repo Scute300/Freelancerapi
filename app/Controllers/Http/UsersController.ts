@@ -3,6 +3,7 @@ import User from 'App/Models/User'
 import { rules, schema } from '@ioc:Adonis/Core/Validator'
 import Banlist from 'App/Models/Banlist'
 import Phonenumber from 'App/Models/Phonenumber'
+import Token from 'App/Models/Token'
 
 export default class UsersController {
     async register({auth, request, response}){
@@ -166,7 +167,45 @@ export default class UsersController {
 
     }
 
-    async pushphone({ auth, request, response }){
-        
+    async loginbygoogle({request, response}){
+        try{
+            const validation = schema.create({
+                name: schema.string({},[
+                    rules.alpha({
+                        allow : ['space']
+                    }),
+                    rules.minLength(5),
+                    rules.maxLength(20),
+                    rules.required()
+                ]),
+                username: schema.string({},[
+                    rules.alpha({
+                        allow:['dash', 'underscore']
+                    }),
+                    rules.minLength(5),
+                    rules.maxLength(20),
+                    rules.required(),
+                ]),
+                email: schema.string({},[
+                    rules.required(),
+                    rules.email(),
+                    rules.maxLength(80),
+                    rules.unique({ table: 'users', column: 'email' }),
+                    rules.unique({ table: 'socialusers', column: 'email' })
+                ])
+            })
+    
+            const data = await request.validate({
+               schema: validation,
+               messages: {
+                 'email.required': 'Please introduce a valid email adress',
+                 'email.maxLength': 'Email cannot to be higher at 80 characters',
+                 'email.unique': 'Email adress already exist',
+                 'email.email' : 'Please introduce a valid Email Adress'
+               }
+           })
+        }catch(error){
+
+        }
     }
 }
