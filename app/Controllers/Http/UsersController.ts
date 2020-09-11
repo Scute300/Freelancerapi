@@ -219,9 +219,9 @@ export default class UsersController {
                    })
                }
            } else {
-               let n:number = 0
+               let flag:number = 0
 
-               while(n = 100){
+               while(flag > 100){
                     let mat : number = Math.random()* 10000
                     let matinteger : number = Math.trunc(mat)
                     const username:string = data.username+matinteger
@@ -244,7 +244,7 @@ export default class UsersController {
                             status : 'sure',
                         })
                     }else {
-                        n++
+                        flag++
                         console.log('user exist')
                     }
                 }
