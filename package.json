@@ -1,10 +1,10 @@
 {
-  "name": "apiç",
+  "name": "freelancerapi",
   "version": "0.0.0",
   "private": true,
   "scripts": {
     "build": "node ace build",
-    "start": "node ace serve --watch",
+    "start": "ENV_SILENT=true node server.js",
     "lint": "eslint . --ext=.ts"
   },
   "devDependencies": {
@@ -24,6 +24,7 @@
     "@adonisjs/fold": "^6.4.0",
     "@adonisjs/lucid": "^8.4.2",
     "luxon": "^1.25.0",
+    "mariadb": "^2.4.2",
     "mysql": "^2.18.1",
     "proxy-addr": "^2.0.6",
     "reflect-metadata": "^0.1.13",

@@ -20,7 +20,7 @@ const databaseConfig: DatabaseConfig & { orm: Partial<OrmConfig> } = {
   | file.
   |
   */
-  connection: Env.get('DB_CONNECTION', 'mysql') as string,
+  connection: Env.get('DB_CONNECTION', 'mariadb') as string,
 
   connections: {
     /*
@@ -34,8 +34,8 @@ const databaseConfig: DatabaseConfig & { orm: Partial<OrmConfig> } = {
     | npm i mysql
     |
     */
-    mysql: {
-      client: 'mysql',
+    mariadb: {
+      client: 'mysql2',
       connection: {
         host: Env.get('DB_HOST', '127.0.0.1') as string,
         port: Number(Env.get('DB_PORT', 3306)),
