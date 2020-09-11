@@ -2,8 +2,8 @@
 import User from 'App/Models/User'
 import { rules, schema } from '@ioc:Adonis/Core/Validator'
 import Banlist from 'App/Models/Banlist'
-import Phonenumber from 'App/Models/Phonenumber'
 import Token from 'App/Models/Token'
+import Socialuser from 'App/Models/Socialuser'
 
 export default class UsersController {
     async register({auth, request, response}){
@@ -146,9 +146,8 @@ export default class UsersController {
         const banverify = await Banlist.findBy('email', user.email)
 
         if (banverify == null) {
-            const phoneverify = await Phonenumber.findBy('userId', user.id)
 
-            if(phoneverify == null){
+            if(auth.current.user.phone == null){
                 return response.json({
                     status: 'phone'
                 })
@@ -171,28 +170,16 @@ export default class UsersController {
         try{
             const validation = schema.create({
                 name: schema.string({},[
-                    rules.alpha({
-                        allow : ['space']
-                    }),
-                    rules.minLength(5),
-                    rules.maxLength(20),
                     rules.required()
                 ]),
                 username: schema.string({},[
-                    rules.alpha({
-                        allow:['dash', 'underscore']
-                    }),
-                    rules.minLength(5),
-                    rules.maxLength(20),
                     rules.required(),
                 ]),
                 email: schema.string({},[
                     rules.required(),
                     rules.email(),
-                    rules.maxLength(80),
                     rules.unique({ table: 'users', column: 'email' }),
-                    rules.unique({ table: 'socialusers', column: 'email' })
-                ])
+                ]),
             })
     
             const data = await request.validate({
@@ -201,10 +188,72 @@ export default class UsersController {
                  'email.required': 'Please introduce a valid email adress',
                  'email.maxLength': 'Email cannot to be higher at 80 characters',
                  'email.unique': 'Email adress already exist',
-                 'email.email' : 'Please introduce a valid Email Adress'
+                 'email.email' : 'Please introduce a valid Email Adress',
+                 'name.required' : 'Name is required',
+                 'username.required' : 'Username is required'
                }
            })
+           const token : string = request.input('token')
+           let newtoken = await Token.findBy('token', token)
+
+           const registerverify = await Socialuser.findBy('email', data.email)
+           if(registerverify !== null){
+               if(newtoken !== null){
+                    newtoken.username = registerverify.username
+                    newtoken.session_type = 'google'
+                    newtoken.token = token
+                    await newtoken.save()
+
+                    return response.json({
+                        status : 'sure',
+                    })
+               } else {
+                   newtoken = new Token()
+                   newtoken.username = registerverify.username
+                   newtoken.session_type = 'google'
+                   newtoken.token = token
+                   await newtoken.save()
+
+                   return response.json({
+                       status : 'sure',
+                   })
+               }
+           } else {
+               let n:number = 0
+
+               while(n = 100){
+                    let mat : number = Math.random()* 10000
+                    let matinteger : number = Math.trunc(mat)
+                    const username:string = data.username+matinteger
+                    const usercomprobation = {usertable : await User.findBy('username', username), socialtable: await Socialuser.findBy('username', username)}
+                    if(usercomprobation.usertable == null && usercomprobation.socialtable == null){
+                        const newuser = new Socialuser()
+                        newuser.name = data.name
+                        newuser.username = username
+                        newuser.social_type = 'google'
+                        newuser.email = data.email
+                        await newuser.save()
+
+                        newtoken = new Token()
+                        newtoken.username = newuser.username
+                        newtoken.session_type = 'google'
+                        newtoken.token = token
+                        await newtoken.save()
+
+                        return response.json({
+                            status : 'sure',
+                        })
+                    }else {
+                        n++
+                        console.log('user exist')
+                    }
+                }
+           }
         }catch(error){
+            return response.status(400).json({
+                status: 'wrong',
+                data: error.messages[0]
+            })
 
         }
     }

@@ -7,7 +7,6 @@ export default class Socialusers extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
       table.string('social_type')
-      table.integer('social_id')
       table.string('name')
       table.string('username')
       table.string('email')
