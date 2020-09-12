@@ -4,6 +4,7 @@ import { rules, schema } from '@ioc:Adonis/Core/Validator'
 import Banlist from 'App/Models/Banlist'
 import Token from 'App/Models/Token'
 import Socialuser from 'App/Models/Socialuser'
+import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 
 export default class UsersController {
     async register({auth, request, response}){
@@ -166,8 +167,9 @@ export default class UsersController {
 
     }
 
-    async loginbygoogle({request, response}){
+    async loginbygoogle({request, response}: HttpContextContract){
         try{
+            console.log('hello world')
             const validation = schema.create({
                 name: schema.string({},[
                     rules.required()
@@ -180,6 +182,9 @@ export default class UsersController {
                     rules.email(),
                     rules.unique({ table: 'users', column: 'email' }),
                 ]),
+                token: schema.string({},[
+                    rules.required()
+                ])
             })
     
             const data = await request.validate({
@@ -193,9 +198,9 @@ export default class UsersController {
                  'username.required' : 'Username is required'
                }
            })
-           const token : string = request.input('token')
+           console.log(data)
+           const token : string = data.token
            let newtoken = await Token.findBy('token', token)
-
            const registerverify = await Socialuser.findBy('email', data.email)
            if(registerverify !== null){
                if(newtoken !== null){
@@ -208,7 +213,7 @@ export default class UsersController {
                         status : 'sure',
                     })
                } else {
-                   newtoken = new Token()
+                   newtoken = await new Token()
                    newtoken.username = registerverify.username
                    newtoken.session_type = 'google'
                    newtoken.token = token
@@ -220,21 +225,21 @@ export default class UsersController {
                }
            } else {
                let flag:number = 0
-
-               while(flag > 100){
-                    let mat : number = Math.random()* 10000
+                console.log(flag)
+               while(flag < 100){
+                    let mat : number = Math.random()* 500
                     let matinteger : number = Math.trunc(mat)
-                    const username:string = data.username+matinteger
+                    const username:string = data.username+matinteger+flag
                     const usercomprobation = {usertable : await User.findBy('username', username), socialtable: await Socialuser.findBy('username', username)}
                     if(usercomprobation.usertable == null && usercomprobation.socialtable == null){
-                        const newuser = new Socialuser()
+                        const newuser = await new Socialuser()
                         newuser.name = data.name
                         newuser.username = username
                         newuser.social_type = 'google'
                         newuser.email = data.email
                         await newuser.save()
 
-                        newtoken = new Token()
+                        newtoken = await new Token()
                         newtoken.username = newuser.username
                         newtoken.session_type = 'google'
                         newtoken.token = token
@@ -250,6 +255,7 @@ export default class UsersController {
                 }
            }
         }catch(error){
+            console.log(error)
             return response.status(400).json({
                 status: 'wrong',
                 data: error.messages[0]

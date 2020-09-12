@@ -19,13 +19,14 @@
 */
 
 import Route from '@ioc:Adonis/Core/Route'
-
+import Socialuser from 'App/Models/Socialuser'
 Route.get('/', async () => {
-  return { hello: 'world' }
+  const x= await Socialuser.all()
+  return x;
 })
 Route.group(()=>{
   Route.post('/newuser', 'UsersController.register')
-  Route.post('/login', 'UsersController.Login')
+  Route.post('/loginbygoogle', 'UsersController.loginbygoogle')
   Route.get('/me', 'UserController.me')
 }).prefix('/api/v1')
 
