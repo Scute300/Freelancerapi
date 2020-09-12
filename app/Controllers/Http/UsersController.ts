@@ -38,7 +38,7 @@ export default class UsersController {
                     rules.email(),
                     rules.maxLength(80),
                     rules.unique({ table: 'users', column: 'email' })
-                ])
+                ]),
               })
     
              const data = await request.validate({
@@ -167,7 +167,7 @@ export default class UsersController {
 
     }
 
-    async loginbygoogle({request, response}: HttpContextContract){
+    async loginbysocial({request, response}: HttpContextContract){
         try{
             console.log('hello world')
             const validation = schema.create({
@@ -184,6 +184,10 @@ export default class UsersController {
                 ]),
                 token: schema.string({},[
                     rules.required()
+                ]),
+                type: schema.string({},[
+                    rules.required(),
+                    rules.alpha()
                 ])
             })
     
@@ -200,7 +204,7 @@ export default class UsersController {
            })
            console.log(data)
            const token : string = data.token
-           let newtoken = await Token.findBy('token', token)
+           let newtoken = await Token.findBy('username', data.username)
            const registerverify = await Socialuser.findBy('email', data.email)
            if(registerverify !== null){
                if(newtoken !== null){
@@ -235,7 +239,7 @@ export default class UsersController {
                         const newuser = await new Socialuser()
                         newuser.name = data.name
                         newuser.username = username
-                        newuser.social_type = 'google'
+                        newuser.social_type = data.type
                         newuser.email = data.email
                         await newuser.save()
 

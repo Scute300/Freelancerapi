@@ -26,7 +26,7 @@ Route.get('/', async () => {
 })
 Route.group(()=>{
   Route.post('/newuser', 'UsersController.register')
-  Route.post('/loginbygoogle', 'UsersController.loginbygoogle')
+  Route.post('/loginbysocial', 'UsersController.loginbysocial')
   Route.get('/me', 'UserController.me')
 }).prefix('/api/v1')
 
