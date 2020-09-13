@@ -1,13 +1,12 @@
 // import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import User from 'App/Models/User'
 import { rules, schema } from '@ioc:Adonis/Core/Validator'
-import Banlist from 'App/Models/Banlist'
 import Token from 'App/Models/Token'
 import Socialuser from 'App/Models/Socialuser'
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 
 export default class UsersController {
-    async register({auth, request, response}){
+    async registerbyemail({auth, request, response}){
         try{
         
             const validation = schema.create({
@@ -26,7 +25,8 @@ export default class UsersController {
                     rules.minLength(5),
                     rules.maxLength(20),
                     rules.required(),
-                    rules.unique({ table: 'users', column: 'username' })
+                    rules.unique({ table: 'users', column: 'username' }),
+                    rules.unique({ table: 'socialusers', column: 'username' })
                 ]),
                 password: schema.string({},[
                     rules.required(),
@@ -37,7 +37,8 @@ export default class UsersController {
                     rules.required(),
                     rules.email(),
                     rules.maxLength(80),
-                    rules.unique({ table: 'users', column: 'email' })
+                    rules.unique({ table: 'users', column: 'email' }),
+                    rules.unique({ table: 'socialusers', column: 'email' })
                 ]),
               })
     
@@ -71,6 +72,11 @@ export default class UsersController {
             await user.save()
 
             const token : string = await auth.use('api').attempt(user.email, user.password)
+            const savetoken = await new Token()
+            savetoken.username = user.username
+            savetoken.session_type = 'email'
+            savetoken.token = token
+            await savetoken.save() 
 
             return response.json({
                 status: 'sure',
@@ -87,86 +93,6 @@ export default class UsersController {
           
     }
 
-    async Login({auth, request, response}){
-        try{
-        
-            const validation = schema.create({
-                password: schema.string({},[
-                    rules.required(),
-                    rules.minLength(8),
-                    rules.maxLength(30)
-                ]),
-                email: schema.string({},[
-                    rules.required(),
-                    rules.email(),
-                    rules.maxLength(80),
-                    rules.exists({ table: 'users', column: 'email' })
-                ])
-              })
-    
-              const data = await request.validate({
-                 schema: validation,
-                 messages: {
-                   'password.required': 'Password is wrong',
-                   'password.minLength': 'Password is wrong',
-                   'password.maxLength': 'Password is wrong',
-                   'email.required': 'Please introduce a valid email adress',
-                   'email.maxLength': 'Email cannot to be higher at 80 characters',
-                   'email.exist': 'Please introduce a valid email adress',
-                 }
-             })
-             const banverify = await Banlist.findBy('email', data.email)
-
-             if (banverify == null) {
-
-                const token : string = await auth.use('api').attempt(data.email, data.password)
-   
-                return response.json({
-                   status:'sure',
-                   data: token
-                })
-
-            } else {
-                return response.status(413).json({
-                    status: 'wrong',
-                    message : `You're banned for ${banverify.reason}`
-                })
-            }
-
-        }catch(error){
-            return response.status(400).json({
-                status : 'wrong',
-                message: error.messages[0]
-            })
-        }
-    }
-
-    async me({auth, response}){
-        const user = auth.current.user
-
-        const banverify = await Banlist.findBy('email', user.email)
-
-        if (banverify == null) {
-
-            if(auth.current.user.phone == null){
-                return response.json({
-                    status: 'phone'
-                })
-            } else {
-                return response.json({
-                    status: 'sure',
-                    data: user
-                })
-            }
-        } else {
-            return response.status(413).json({
-                status: 'wrong',
-                message : `You're banned for ${banverify.reason}`
-            })
-        }
-
-    }
-
     async loginbysocial({request, response}: HttpContextContract){
         try{
             console.log('hello world')
@@ -179,7 +105,6 @@ export default class UsersController {
                 ]),
                 email: schema.string({},[
                     rules.required(),
-                    rules.email(),
                     rules.unique({ table: 'users', column: 'email' }),
                 ]),
                 token: schema.string({},[
@@ -215,6 +140,7 @@ export default class UsersController {
 
                     return response.json({
                         status : 'sure',
+                        token: newtoken.token
                     })
                } else {
                    newtoken = await new Token()
@@ -225,6 +151,7 @@ export default class UsersController {
 
                    return response.json({
                        status : 'sure',
+                       token: newtoken.token
                    })
                }
            } else {
@@ -233,7 +160,7 @@ export default class UsersController {
                while(flag < 100){
                     let mat : number = Math.random()* 500
                     let matinteger : number = Math.trunc(mat)
-                    const username:string = data.username+matinteger+flag
+                    const username:string = data.username.replace(/ /g, "_")+matinteger+flag
                     const usercomprobation = {usertable : await User.findBy('username', username), socialtable: await Socialuser.findBy('username', username)}
                     if(usercomprobation.usertable == null && usercomprobation.socialtable == null){
                         const newuser = await new Socialuser()
@@ -245,12 +172,13 @@ export default class UsersController {
 
                         newtoken = await new Token()
                         newtoken.username = newuser.username
-                        newtoken.session_type = 'google'
+                        newtoken.session_type = data.type
                         newtoken.token = token
                         await newtoken.save()
 
                         return response.json({
                             status : 'sure',
+                            token : newtoken.token
                         })
                     }else {
                         flag++

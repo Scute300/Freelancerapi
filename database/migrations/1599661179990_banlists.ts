@@ -7,6 +7,7 @@ export default class Banlists extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
       table.string('email')
+      table.string('username')
       table.string('reason')
       table.timestamps(true)
     })

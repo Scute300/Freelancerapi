@@ -14,5 +14,7 @@ export default class Banlist extends BaseModel {
   @column()
   public email:string
   @column()
+  public username : string
+  @column()
   public reason : string
 }
