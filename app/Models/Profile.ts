@@ -14,7 +14,7 @@ export default class Profile extends BaseModel {
   public updatedAt: DateTime
 
   @column()
-  public userId : number
+  public user_name : string
 
   @column()
   public avatar : string

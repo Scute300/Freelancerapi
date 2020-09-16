@@ -12,7 +12,7 @@ export default class Token extends BaseModel {
   public updatedAt: DateTime
 
   @column()
-  public username:string
+  public session_user_id:string
   
   @column()
   public session_type : string 

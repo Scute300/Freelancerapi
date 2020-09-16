@@ -1,14 +1,13 @@
 import BaseSchema from '@ioc:Adonis/Lucid/Schema'
 
-export default class Tokens extends BaseSchema {
-  protected tableName = 'tokens'
+export default class Verificationcodes extends BaseSchema {
+  protected tableName = 'verificationcodes'
 
   public async up () {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
-      table.string('session_user_id')
-      table.string('session_type')
-      table.string('token')
+      table.string('userId').references('id').inTable('users').notNullable
+      table.integer('verificationcode').notNullable
       table.timestamps(true)
     })
   }

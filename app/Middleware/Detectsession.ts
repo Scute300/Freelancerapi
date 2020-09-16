@@ -1,53 +1,41 @@
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Token from 'App/Models/Token'
-import { rules, schema } from '@ioc:Adonis/Core/Validator'
 import Banlist from 'App/Models/Banlist'
 import Socialuser from 'App/Models/Socialuser'
 import User from 'App/Models/User';
-
+interface token {
+  type: string,
+  token: string
+}
 export default class Detectsession {
-  public async handle ({request, response}: HttpContextContract, next: () => Promise<void>) {
-    try {
-      const validation = schema.create({
-        token : schema.string({},[
-          rules.required()
-        ])
-      })
-
-      const data = await request.validate({
-        schema:validation
-      })
-      const tokenjson = await JSON.parse(data.token)
-      const token = await Token.findBy('token', tokenjson.token)
-      if (token !== null) {
-        const banverify = await Banlist.findBy('username', token.username)
-        let user : any = null 
-        if (banverify == null){
-          if(tokenjson.type == 'google' ||  tokenjson.type == 'facebook'){
-            user = await Socialuser.findBy('username', token.username)
-            return user
-          } else if(tokenjson.type == 'email'){
-            user = await User.findBy('username', token.username)
-            return user
+  public async handle ({request}: HttpContextContract, next: () => Promise<void>,) {
+      const tokenheader: string | undefined = request.header('authorization')
+      const tokenjson : token | null = tokenheader !== undefined ? JSON.parse(tokenheader) : null
+      let user:any = null
+      let banverify:any = null
+      if(tokenjson !== null){
+        const token = await Token.findBy('token', tokenjson.token)
+        if(token !== null){
+          switch (token.session_type){
+            case 'go' || 'fb':
+              user = await Socialuser.findBy('social_type', token.session_user_id)
+              banverify = await Banlist.findBy('username', token.session_user_id)
+              banverify == null ? request.user={status : '200', message:user}  : request.user = {status: '413', message:`You're bannerd for ${banverify.reason}`}
+            break
+            case 'email':
+              user = await User.findBy('username', token.session_user_id)
+              banverify = await Banlist.findBy('username', token.session_user_id)
+              banverify == null ? request.user={status : '200', message:user} : {status: '413', message:`You're bannerd for ${banverify.reason}`}
+            break
           }
-        } else {
-          return response.status(413).json({
-            status : 'banned',
-            message : `You're banned for ${banverify.reason}`
-          })
+        }else {
+          request.user = {status: '413', message:`Unautorized`}
         }
-      } else{
-        return response.status(413).json({
-          status: 'wrong',
-          message: 'unautorized'
-        })
+      } else {
+        request.user = {status: '413', message:`Unautorized`}
       }
+      
+      
       await next()
-    } catch(error){
-      return response.status(413).json({
-        status: 'wrong',
-        message: 'unautorized'
-      })
-    }
   }
 }

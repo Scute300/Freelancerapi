@@ -14,19 +14,25 @@ export default class Socialuser extends BaseModel {
   public updatedAt: DateTime
 
   @column()
-  social_type : string
+  public social_type : string
   
   @column()
-  social_id : string
+  public social_id : string
 
   @column()
-  name : string
+  public name : string
 
   @column()
-  username : string
+  public username : string
+  
+  @column()
+  public email : string
 
   @column()
-  email : string
+  public isverifiedemail : boolean
+
+  @column()
+  public phonenumber : string
 
   @hasOne(() => Profile, {
     foreignKey : 'user_name'

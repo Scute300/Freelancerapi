@@ -10,6 +10,8 @@ export default class Socialusers extends BaseSchema {
       table.string('name')
       table.string('username')
       table.string('email')
+      table.boolean('isverifiedemail').notNullable()
+      table.string('phonenumber', 60)
       table.timestamps(true)
     })
   }
