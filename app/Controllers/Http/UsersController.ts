@@ -6,8 +6,8 @@ import Socialuser from 'App/Models/Socialuser'
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import axios from 'axios'
 import Banlist from 'App/Models/Banlist'
-import Verificationcode from 'App/Models/Verificationcode'
-import Mail from '@ioc:Adonis/Addons/Mail'
+import Myvericode from 'App/Models/Myvericode'
+//import Mail from '@ioc:Adonis/Addons/Mail'
 
   
 interface user {
@@ -20,9 +20,8 @@ interface user {
 }
 
 export default class UsersController {
-    async registerbyemail({auth, request, response}){
+    async registerbyemail({auth, request, response}: HttpContextContract){
         try{
-        
             const validation = schema.create({
                 name: schema.string({},[
                     rules.alpha({
@@ -55,6 +54,7 @@ export default class UsersController {
                     rules.unique({ table: 'socialusers', column: 'email' })
                 ]),
               })
+              console.log(validation)
     
              const data = await request.validate({
                 schema: validation,
@@ -78,24 +78,27 @@ export default class UsersController {
                 }
             })
 
-            const user = new User()
+            const user =  await new User()
             user.name = data.name 
             user.username = data.username
             user.password = data.password 
-            user.isverifiedemail = false
+            user.isverifiedemail = true
             user.email = data.email 
             await user.save()
 
-            const token : string = await auth.use('api').attempt(user.email, user.password)
+            const token = await auth.use('api').attempt(data.email, data.password)
+            console.log(token.token)
+ 
             const savetoken = await new Token()
             savetoken.session_user_id = user.username
             savetoken.session_type = 'email'
-            savetoken.token = token
+            savetoken.token = token.token
             await savetoken.save() 
             
+            /*
             const verificationcode :number = Math.random() * (1000 - 9999) + 1000
             
-            const newcode = new Verificationcode()
+            const newcode = new Verification()
             newcode.userId = user.id
             newcode.verificationcode = verificationcode
             await newcode.save()
@@ -110,6 +113,7 @@ export default class UsersController {
                     code: newcode.verificationcode
                 })
             })
+            */
 
             return response.json({
                 status: 'email',
@@ -119,12 +123,100 @@ export default class UsersController {
 
 
         }catch(error){
+            console.log(error)
+            console.log(error.messages)
             return response.status(400).json({
                 status: 'wrong',
-                message: error.messages[0]
+                message: error.messages.errors[0].message
             })
         }
           
+    }
+
+    async loginbymail({auth, request, response}:HttpContextContract){
+        try{
+            const validation = schema.create({
+                email: schema.string({},[
+                    rules.required(),
+                    rules.email()
+                ]),
+                password: schema.string({},[
+                    rules.required(),
+                    rules.minLength(8),
+                    rules.maxLength(30)
+                ])
+            })
+    
+            const data = await request.validate({
+                schema: validation,
+                messages: {
+                  'email.required': 'Please introduce a valid email adress',
+                  'email.email': 'please introduce a valid email adress',
+                  'password.required' : 'Password is required',
+                  'password.minLength': 'Password cant be less of 8 characters',
+                  'password.maxLength': 'password cant contain more of 30 characters'
+                }
+            })
+            interface token {
+                response: boolean,
+                token:string
+            }
+            const token:token = await auth.use('api').attempt(data.email, data.password)
+            .then(res =>{
+                return {response : true, token : res.token}
+            }).catch(error =>{
+                return {response : false , token : ''}
+            })
+
+            switch(token.response){
+                case true: 
+                    const user = await User.findBy('email', data.email)
+                    let uppdatesession = await Token.findBy('session_user_id', user !== null ? user.username : '')
+                    const banverify = await Banlist.findBy('username', uppdatesession !== null ? uppdatesession.session_user_id : '')
+                    if(banverify == null){
+                        if(uppdatesession !== null){
+                            uppdatesession.token = token.token
+                            await uppdatesession.save()
+                        } else {
+                            uppdatesession= await new Token()
+                            uppdatesession.session_user_id = user!.username
+                            uppdatesession.session_type = 'email'
+                            uppdatesession.token = token.token
+                            await uppdatesession.save()   
+                        }
+                        if(user!.isverifiedemail == false){
+                            return response.status(413).json({
+                                status : 'email',
+                                message : 'You need veryfi your email adress'
+                            })
+                        } else {
+                            return response.json({
+                                status: 'sure',
+                                user: user,
+                                token : uppdatesession.token
+                            })
+                        }
+                    } else {
+                        return response.status(413).json({
+                            status : 'ban',
+                            message : `You're banned for ${banverify.reason}`
+                        })
+                    }
+                break
+                case false : 
+                    return response.status(413).json({
+                        status : 'invalid',
+                        message : 'Invalid email or password'
+                    })
+                break
+            }
+        }catch(error){
+            return response.status(400).json({
+                status: 'wrong',
+                message: error.messages.errors[0].message
+            })
+        }
+
     }
 
     async loginbysocial({request, response}: HttpContextContract){
@@ -261,7 +353,7 @@ export default class UsersController {
                 break
             }
         } else {
-            return response.status('413').json({
+            return response.status(413).json({
                 status:'Unautorized',
                 message: request.user.message
             })
@@ -286,7 +378,7 @@ export default class UsersController {
                    }
                })
 
-               const code = await Verificationcode.findBy('userId', request.user.message.id)
+               const code = await Myvericode.findBy('userId', request.user.message.id)
 
                const verify = code?.verificationcode == data.code ? true : false
                switch (verify){

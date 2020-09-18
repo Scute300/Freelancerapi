@@ -2,7 +2,7 @@ import { DateTime } from 'luxon'
 import { BaseModel, column, beforeSave, hasOne, HasOne } from '@ioc:Adonis/Lucid/Orm'
 import Hash from '@ioc:Adonis/Core/Hash'
 import Profile from 'App/Models/Profile'
-import Verificationcode from 'App/Models/Verificationcode'
+import Myvericode from 'App/Models/Myvericode'
 
 export default class User extends BaseModel {
   @column({ isPrimary: true })
@@ -19,27 +19,32 @@ export default class User extends BaseModel {
   
   @column()
   public username : string
+  
+  @column({ serializeAs: null })
+  public password : string
+
+  @column()
+  public phonenumber:string
 
   @column()
   public email : string
   
   @column()
   public isverifiedemail : boolean
-  
-  @column({ serializeAs: null })
-  public password : string
+
+  @hasOne(() => Profile)
+  public profile: HasOne<typeof Profile>
+
+  @hasOne(() => Myvericode, {
+    foreignKey: 'user_name',
+  })
+  public vericode: HasOne<typeof Myvericode>
+
   @beforeSave()
   public static async hashPassword (user: User) {
     if (user.$dirty.password) {
-      user.password = await Hash.hash(user.password)
+      user.password = await Hash.make(user.password)
     }
   }
-  @hasOne(() => Profile, {
-    foreignKey : 'user_name'
-  })
-  public profile: HasOne<typeof Profile>
-
-  @hasOne(() => Verificationcode)
-  public : HasOne<typeof Verificationcode>
 
 }

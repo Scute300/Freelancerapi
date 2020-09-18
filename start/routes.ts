@@ -25,9 +25,10 @@ Route.get('/', async () => {
   return x;
 })
 Route.group(()=>{
-  Route.post('/newuser', 'UsersController.register')
+  Route.post('/newuser', 'UsersController.registerbyemail')
   Route.post('/loginbysocial', 'UsersController.loginbysocial')
-  Route.get('/me', 'UserController.me')
+  Route.get('/me', 'UsersController.me')
+  Route.post('/loginbyemail', 'UsersController.loginbymail')
 }).prefix('/api/v1')
 
 Route.group(()=>{
